@@ -1,0 +1,34 @@
+{
+	"FileVersion" : 3,
+	
+	"FriendlyName" : "Sensor Fusion Plugin",
+	"Version" : 1,
+	"VersionName" : "1.0a",
+	"CreatedBy" : "Dennis Ogiermann",
+	"CreatedByURL" : "https://github.com/termi-official",
+	"EngineVersion" : "4.13.1",
+	"Description" : "Blueprint classes to access different sensors and bind their data to entities.",
+	"Category" : "Devices.Input",
+	"EnabledByDefault" : false,
+	
+	"Modules" :
+	[
+		{
+			"Name" : "SensorFusionCore",
+			"Type" : "Runtime"
+		},
+		{
+			"Name" : "SensorFusionKinect2Extension",
+			"Type" : "Runtime"
+		},
+		{
+			"Name" : "SensorFusionLeapOrionExtension",
+			"Type" : "Runtime"
+		},
+		{
+			"Name" : "SensorFusionEditorIntegration",
+			"Type" : "Editor"
+		}
+	],
+	"CanContainContent" : true
+}

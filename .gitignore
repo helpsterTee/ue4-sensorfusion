@@ -1,0 +1,41 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+*.sdf
+*.sln
+*.suo
+*.opensdf
+*.dll
+*.pdb
+
+# Unreal Dirs
+Binaries
+Content
+Intermediate
+Debug
+Saved
+
+# Project specific dirs
+Plugins/SensorFusion/ThirdParty
+Plugins/SensorFusion/Docs
+Plugins/SensorFusion/Intermediate
+
+# Duplicate content
+!Content/SensorFusion
+
+# Documentational stuff
+#*.doxygen
+
+# Logs!
+*.log
