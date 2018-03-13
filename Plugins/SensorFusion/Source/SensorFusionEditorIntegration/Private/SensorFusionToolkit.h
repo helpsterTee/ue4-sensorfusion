@@ -2,8 +2,6 @@
 
 #include "ISensorFusionToolkit.h"
 
-#include "Animation/DebugSkelMeshComponent.h"
-
 
 
 class SSensorMappingViewport;
@@ -21,11 +19,7 @@ class FSensorFusionToolkit final
 	, public FNotifyHook
 {
 private:
-	UDebugSkelMeshComponent* PreviewComponent;
 	UAvateeringProfile* AvateeringProfile;
-
-	TSharedPtr<SSensorMappingViewport> Viewport;
-	TSharedPtr<SListView<UBoneMappingEntry*>> BoneMappingView;
 
 	const static FName ToolbarTabId;
 	const static FName ViewportTabId;
@@ -34,19 +28,35 @@ private:
 	void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 	void UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
 
+	TSharedPtr<FExtender> ToolbarExtender;
+	TSharedPtr<FExtender> MenuExtender;
+
+	void FillToolbar(FToolBarBuilder& InToolbarBuilder);
+
+	template<class T, typename... Args>
+	void AddMode(Args&&... args) 
+	{
+		TSharedRef<T> Mode = MakeShareable(new T(SharedThis(this))); 
+		Mode->Init(std::forward<Args>(args)...);
+		this->AddApplicationMode(Mode->GetModeName(), Mode);
+	}
+
+
+	template<class T>
+	void AddMode()
+	{
+		TSharedRef<T> Mode = MakeShareable(new T(SharedThis(this)));
+		Mode->Init();
+		this->AddApplicationMode(Mode->GetModeName(), Mode);
+	}
+
 public:
 	FSensorFusionToolkit();
 	void Init(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UAvateeringProfile* SensorDataMapping, USkeletalMesh* Target);
-	UDebugSkelMeshComponent* GetPreviewComponent() const;
-
-
-	//!
-	void SelectBoneByName(FName BoneName);
-
+	
 
 	// Begin ISensorMappingEditor interface
-	const USkeletalMesh* GetTarget() const override;
-	UAvateeringProfile* GetMapping() const override;
+	UAvateeringProfile* GetProfile() const override;
 	// End .........
 
 	
@@ -82,8 +92,15 @@ public:
 	//
 	
 
-	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
-	TSharedRef<SDockTab> SpawnTab_MappingTable(const FSpawnTabArgs& Args);
+	//TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
+	//TSharedRef<SDockTab> SpawnTab_MappingTable(const FSpawnTabArgs& Args);
+	
+	
+	///@todo remove this mess.
+	void RegisterToolbarTab(const TSharedRef<class FTabManager>& InTabManager)
+	{
+		FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
+	}
 
 private:
 	TSharedRef<ITableRow> OnGenerateMappingRow(UBoneMappingEntry* Item, const TSharedRef< STableViewBase >& OwnerTable);
@@ -91,6 +108,4 @@ private:
 
 	void UndoAction();
 	void RedoAction();
-	void SpawnSkeletonPicker();
-	void ChangeTargetSkeleton(USkeletalMesh* NewTarget);
 };

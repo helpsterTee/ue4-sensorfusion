@@ -16,6 +16,8 @@ void FSensorFusionLeapOrionExtension::StartupModule()
 
 	if(auto LeapSensor = Registry->RegisterSensor(TEXT("LeapOrion")))
 	{
+		LeapSensor.GetValue()->IsStationary = false;
+
 		// Register all fingers
 		for (auto Which = ESensorFusionBone::ThumbMetacarpalLeft; Which != ESensorFusionBone::ClavicleRight; ++Which)
 		{

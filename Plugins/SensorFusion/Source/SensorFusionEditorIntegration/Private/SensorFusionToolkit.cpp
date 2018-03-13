@@ -1,4 +1,5 @@
 #include "SensorFusionEditorIntegrationPCH.h"
+
 #include "SensorFusionToolkit.h"
 #include "SensorFusionFunctionLibrary.h"
 #include "SSensorMappingViewport.h"
@@ -7,9 +8,10 @@
 #include "SSensorDataMappingListItem.h"
 #include "SensorFusionToolkitCommands.h"
 
+#include "IDocumentation.h"
+#include "SModeWidget.h"
 #include "Runtime/Slate/Public/Widgets/Docking/SDockTab.h"
 #include "GenericCommands.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 
 
 
@@ -47,7 +49,7 @@ void FSensorFusionToolkit::RegisterTabSpawners(const TSharedRef<class FTabManage
 	auto WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
-
+	/*
 	InTabManager->RegisterTabSpawner(ViewportTabId, FOnSpawnTab::CreateSP(this, &FSensorFusionToolkit::SpawnTab_Viewport))
 		.SetDisplayName(LOCTEXT("ViewportTab", "Viewport"))
 		.SetGroup(WorkspaceMenuCategoryRef);
@@ -55,6 +57,7 @@ void FSensorFusionToolkit::RegisterTabSpawners(const TSharedRef<class FTabManage
 	InTabManager->RegisterTabSpawner(MappingTableTabId, FOnSpawnTab::CreateSP(this, &FSensorFusionToolkit::SpawnTab_MappingTable))
 		.SetDisplayName(LOCTEXT("MappingTableTab", "Mapping Table"))
 		.SetGroup(WorkspaceMenuCategoryRef);
+	*/
 }
 
 
@@ -63,8 +66,8 @@ void FSensorFusionToolkit::UnregisterTabSpawners(const TSharedRef<class FTabMana
 {
 	FAssetEditorToolkit::UnregisterTabSpawners(InTabManager);
 
-	InTabManager->UnregisterTabSpawner(ViewportTabId);
-	InTabManager->UnregisterTabSpawner(MappingTableTabId);
+	//InTabManager->UnregisterTabSpawner(ViewportTabId);
+	//InTabManager->UnregisterTabSpawner(MappingTableTabId);
 }
 
 
@@ -72,17 +75,6 @@ void FSensorFusionToolkit::UnregisterTabSpawners(const TSharedRef<class FTabMana
 void FSensorFusionToolkit::Init(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UAvateeringProfile* InSensorDataMapping, USkeletalMesh* InTarget)
 {
 	this->AvateeringProfile = InSensorDataMapping;
-
-	this->PreviewComponent = NewObject<UDebugSkelMeshComponent>();
-	this->PreviewComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	this->PreviewComponent->bDrawMesh = false;
-	this->PreviewComponent->bShowBoneNames = true;
-	this->PreviewComponent->bRenderRawSkeleton = true;
-
-	if (InTarget != nullptr && InTarget->IsValidLowLevel())
-	{
-		this->ChangeTargetSkeleton(InTarget);
-	}
 
 	this->AvateeringProfile->SetFlags(RF_Transactional);
 	GEditor->RegisterForUndo(this);
@@ -95,12 +87,7 @@ void FSensorFusionToolkit::Init(const EToolkitMode::Type Mode, const TSharedPtr<
 	UICommandList->MapAction(FGenericCommands::Get().Undo, FExecuteAction::CreateSP(this, &FSensorFusionToolkit::UndoAction));
 	UICommandList->MapAction(FGenericCommands::Get().Redo, FExecuteAction::CreateSP(this, &FSensorFusionToolkit::RedoAction));
 	// ... specific
-	UICommandList->MapAction(Commands.ChangeTargetSkeleton, FExecuteAction::CreateSP(this, &FSensorFusionToolkit::SpawnSkeletonPicker));
-
-
-	// Build UI
-	SAssignNew(Viewport, SSensorMappingViewport)
-		.SensorFusionToolkit(SharedThis(this));
+	//UICommandList->MapAction(Commands.ChangeTargetSkeleton, FExecuteAction::CreateSP(this, &FSensorFusionToolkit::SpawnSkeletonPicker));
 
 
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("SensorDataMappingEditorLayoutV1")
@@ -136,80 +123,32 @@ void FSensorFusionToolkit::Init(const EToolkitMode::Type Mode, const TSharedPtr<
 			)
 		);
 
-
-	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, TEXT("Sensor-Mapping Editor"), StandaloneDefaultLayout, true, true, this->AvateeringProfile);
-
-	// Extend toolbars
-	struct LocalToolbarBuilder
-	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
-		{
-			ToolbarBuilder.BeginSection("Skeleton");
-			{
-				ToolbarBuilder.AddToolBarButton(FSensorFusionToolkitCommands::Get().ChangeTargetSkeleton);
-			}
-			ToolbarBuilder.EndSection();
-		}
-	};
-	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+	ToolbarExtender = MakeShareable(new FExtender);
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic(&LocalToolbarBuilder::FillToolbar)
-	);
-	AddToolbarExtender(ToolbarExtender);
+		FToolBarExtensionDelegate::CreateSP(this, &FSensorFusionToolkit::FillToolbar)
+		);
+	this->AddToolbarExtender(ToolbarExtender);
 
-	RegenerateMenusAndToolbars();
+	
 
-	// Validate skeleton
-	if (this->GetTarget() == nullptr || !this->GetTarget()->IsValidLowLevel())
-	{
-		if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SpawnSkeletonPicker", "No skeleton was referenced. Do you want to add a skeleton now?")))
-		{
-			SpawnSkeletonPicker();
-		}
-	}
+	// Setup modes
+	this->AddMode<FSensorFusionMappingMode>(InTarget);
+	this->AddMode<FSensorFusionCalibrationMode>();
+	const TSharedRef<FTabManager::FLayout> DummyLayout = FTabManager::NewLayout("NullLayout")->AddArea(FTabManager::NewPrimaryArea());
+	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, TEXT("Sensor-Fusion Toolkit"), DummyLayout, true, true, this->AvateeringProfile);
 
 
-	// Update profile
-	auto BoneMappingProfile = &this->AvateeringProfile->BoneMapping;
-	if (this->GetTarget() != nullptr)
-	{
-		// validate mapping...
-		TArray< FName > BoneNames;
-		BoneNames.AddUninitialized(this->GetTarget()->RefSkeleton.GetNum());
-		for (int32 i = 0; i < this->GetTarget()->RefSkeleton.GetNum(); i++)
-		{
-			BoneNames[i] = this->GetTarget()->RefSkeleton.GetBoneName(i);
-		}
-		for (auto Entry : *BoneMappingProfile)
-		{
-			BoneNames.Remove(Entry->ModelBoneName);
-		}
-		if (BoneNames.Num() > 0
-			&& EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, FText::FromString("Add missing bones to the mapping?")))
-		{
-			for (auto MissingBoneName : BoneNames)
-			{
-				auto MissingEntry = NewObject<UBoneMappingEntry>(this->AvateeringProfile);
-				MissingEntry->ModelBoneName = MissingBoneName;
-				BoneMappingProfile->Add(MissingEntry);
-			}
-		}
-	}
+	this->RegenerateMenusAndToolbars();
+	SetCurrentMode(SensorFusionModes::GetName(SensorFusionModes::MappingMode));
+	check(CurrentAppModePtr.IsValid());
 }
 
 
 
-const USkeletalMesh* FSensorFusionToolkit::GetTarget() const
-{
-	return this->PreviewComponent->SkeletalMesh;
-}
-
-
-
-UAvateeringProfile* FSensorFusionToolkit::GetMapping() const
+UAvateeringProfile* FSensorFusionToolkit::GetProfile() const
 {
 	return this->AvateeringProfile;
 }
@@ -218,14 +157,14 @@ UAvateeringProfile* FSensorFusionToolkit::GetMapping() const
 
 FName FSensorFusionToolkit::GetToolkitFName() const
 {
-	return TEXT("SensorMappingEditor");
+	return TEXT("SensorFusionToolkit");
 }
 
 
 
 FText FSensorFusionToolkit::GetBaseToolkitName() const
 {
-	return LOCTEXT("AppLabel", "Sensor-Mapping Editor");
+	return LOCTEXT("AppLabel", "Sensor-Fusion Toolkit");
 }
 
 
@@ -247,7 +186,6 @@ FString FSensorFusionToolkit::GetDocumentationLink() const
 void FSensorFusionToolkit::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObject(this->AvateeringProfile);
-	Collector.AddReferencedObject(this->PreviewComponent);
 }
 
 
@@ -258,7 +196,7 @@ FLinearColor FSensorFusionToolkit::GetWorldCentricTabColorScale() const
 }
 
 
-
+/*
 TSharedRef<SDockTab> FSensorFusionToolkit::SpawnTab_Viewport(const FSpawnTabArgs& Args)
 {
 	check(Args.GetTabId() == ViewportTabId);
@@ -308,7 +246,7 @@ TSharedRef<SDockTab> FSensorFusionToolkit::SpawnTab_MappingTable(const FSpawnTab
 
 	return SpawnedTab;
 }
-
+*/
 
 
 TSharedRef<ITableRow> FSensorFusionToolkit::OnGenerateMappingRow(UBoneMappingEntry* Item, const TSharedRef< STableViewBase >& OwnerTable)
@@ -348,70 +286,56 @@ void FSensorFusionToolkit::RedoAction()
 
 
 
-void FSensorFusionToolkit::SpawnSkeletonPicker()
+void FSensorFusionToolkit::FillToolbar(FToolBarBuilder& InToolbarBuilder)
 {
-	// Configure to get all skeletal mesh assets
-	FOpenAssetDialogConfig Config;
-	Config.DialogTitleOverride = LOCTEXT("SkeletonPicker", "Skeleton Picker");
-	Config.bAllowMultipleSelection = false;
-	for (TObjectIterator<UClass> It; It; ++It)
+	// Build default toolbar
+	InToolbarBuilder.BeginSection("Skeleton");
 	{
-		if (It->IsChildOf(USkeletalMesh::StaticClass()) && !It->HasAnyClassFlags(CLASS_Abstract))
-		{
-			Config.AssetClassNames.Add(It->GetFName());
-		}
+		InToolbarBuilder.AddToolBarButton(FSensorFusionToolkitCommands::Get().ChangeTargetSkeleton);
 	}
+	InToolbarBuilder.EndSection();
 
-	// Open blocking dialog
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-	TArray<FAssetData> AssetData = ContentBrowserModule.Get().CreateModalOpenAssetDialog(Config);
-	if (AssetData.Num() == 1)
+	// Build mode toolbar
+	FToolBarBuilder ToolbarBuilder(InToolbarBuilder.GetTopCommandList(), InToolbarBuilder.GetCustomization());
 	{
-		this->ChangeTargetSkeleton(Cast<USkeletalMesh>(AssetData[0].GetAsset()));
-	}
-}
+		TAttribute<FName> GetActiveMode(this, &FSensorFusionToolkit::GetCurrentMode);
+		FOnModeChangeRequested SetActiveMode = FOnModeChangeRequested::CreateSP(this, &FSensorFusionToolkit::SetCurrentMode);
 
+		this->AddToolbarWidget(
+			SNew(SSpacer)
+			.Size(FVector2D(4.0f, 1.0f))
+		);
 
+		this->AddToolbarWidget(
+			SNew(SModeWidget, SensorFusionModes::GetLocalized(SensorFusionModes::MappingMode), SensorFusionModes::GetName(SensorFusionModes::MappingMode))
+			.OnGetActiveMode(GetActiveMode)
+			.OnSetActiveMode(SetActiveMode)
+			.ToolTip(IDocumentation::Get()->CreateToolTip(
+				LOCTEXT("SensorMappingModeToolTip", "Switch to the mapping interface to bind your sensor data to the pipeline."),
+				nullptr,
+				TEXT("Shared/SensorFusion"),
+				TEXT("SensorMappingMode")))
+		);
 
-void FSensorFusionToolkit::ChangeTargetSkeleton(USkeletalMesh* NewTarget)
-{
-	if (this->GetTarget() != NewTarget)
-	{
-		this->PreviewComponent->SetSkeletalMesh(NewTarget);
-	}
-}
+		this->AddToolbarWidget(
+			SNew(SSpacer)
+			.Size(FVector2D(4.0f, 1.0f))
+		);
 
+		this->AddToolbarWidget(
+			SNew(SModeWidget, SensorFusionModes::GetLocalized(SensorFusionModes::CalibrationMode), SensorFusionModes::GetName(SensorFusionModes::CalibrationMode))
+			.OnGetActiveMode(GetActiveMode)
+			.OnSetActiveMode(SetActiveMode)
+			.ToolTip(IDocumentation::Get()->CreateToolTip(
+				LOCTEXT("CalibrateSensorsModeToolTip", "Switch to a virtual world space to calibrate your static sensors."),
+				nullptr,
+				TEXT("Shared/SensorFusion"),
+				TEXT("SensorMappingMode")))
+		);
 
-
-UDebugSkelMeshComponent* FSensorFusionToolkit::GetPreviewComponent() const
-{
-	return this->PreviewComponent;
-}
-
-
-
-void FSensorFusionToolkit::SelectBoneByName(FName SelectedBoneName)
-{
-	// update preview
-	int idx = this->PreviewComponent->GetBoneIndex(SelectedBoneName);
-	if (idx != INDEX_NONE)
-	{
-		this->PreviewComponent->BonesOfInterest.Empty();
-		this->PreviewComponent->BonesOfInterest.Add(idx);
-		this->Viewport->Invalidate();
-	}
-
-	// update ui
-	for (auto Entry : this->AvateeringProfile->BoneMapping)
-	{
-		if (Entry->ModelBoneName == SelectedBoneName)
-		{
-			if (!this->BoneMappingView->IsItemSelected(Entry))
-			{
-				this->BoneMappingView->SetSelection(Entry, ESelectInfo::Direct);
-			}
-			this->BoneMappingView->RequestScrollIntoView(Entry);
-			break;
-		}
+		this->AddToolbarWidget(
+			SNew(SSpacer)
+			.Size(FVector2D(4.0f, 1.0f))
+		);
 	}
 }

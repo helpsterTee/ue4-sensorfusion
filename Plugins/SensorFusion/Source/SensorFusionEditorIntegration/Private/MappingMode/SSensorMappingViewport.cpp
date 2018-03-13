@@ -23,7 +23,7 @@ SSensorMappingViewport::SSensorMappingViewport()
 
 TSharedRef<FEditorViewportClient> SSensorMappingViewport::MakeEditorViewportClient()
 {
-	TSharedPtr<FEditorViewportClient> EditorViewportClient = MakeShareable(new FSensorMappingViewportClient(PreviewScene, SharedThis(this), this->SensorFusionToolkit));
+	TSharedPtr<FEditorViewportClient> EditorViewportClient = MakeShareable(new FSensorMappingViewportClient(PreviewScene, SharedThis(this), this->MappingMode));
 
 	EditorViewportClient->ViewportType = LVT_Perspective;
 	EditorViewportClient->bSetListenerPosition = false;
@@ -43,7 +43,7 @@ TSharedRef<FEditorViewportClient> SSensorMappingViewport::MakeEditorViewportClie
 TSharedPtr<SWidget> SSensorMappingViewport::MakeViewportToolbar()
 {
 	return SNew(SSensorMappingViewportToolBar, SharedThis(this))
-		.SensorFusionToolkit(this->SensorFusionToolkit);
+		.MappingMode(this->MappingMode);
 }
 
 
@@ -57,11 +57,11 @@ bool SSensorMappingViewport::IsVisible() const
 
 void SSensorMappingViewport::Construct(const FArguments& InArgs)
 {
-	this->SensorFusionToolkit = InArgs._SensorFusionToolkit;
+	this->MappingMode = InArgs._MappingMode;
 
 	SEditorViewport::Construct(SEditorViewport::FArguments());
 
-	auto PreviewComponent = this->SensorFusionToolkit.Pin()->GetPreviewComponent();
+	auto PreviewComponent = this->MappingMode.Pin()->GetPreviewComponent();
 	this->PreviewScene.AddComponent(PreviewComponent, FTransform::Identity);
 	if (PreviewComponent->SkeletalMesh != nullptr)
 	{

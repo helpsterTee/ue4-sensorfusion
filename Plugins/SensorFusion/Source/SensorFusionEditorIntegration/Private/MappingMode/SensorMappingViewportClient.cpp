@@ -1,16 +1,19 @@
 #include "SensorFusionEditorIntegrationPCH.h"
 #include "SensorMappingViewportClient.h"
+#include "SensorFusionBoneProxy.h"
 
+
+#include "SensorFusionMode.h"
 
 
 #define LOCTEXT_NAMESPACE "SensorFusionToolkit"
 
 
 
-FSensorMappingViewportClient::FSensorMappingViewportClient(FPreviewScene& InPreviewScene, const TSharedRef<SSensorMappingViewport> InSensorMappingViewport, TWeakPtr<FSensorFusionToolkit> InSensorFusionToolkit)
+FSensorMappingViewportClient::FSensorMappingViewportClient(FPreviewScene& InPreviewScene, const TSharedRef<SSensorMappingViewport> InSensorMappingViewport, TWeakPtr<FSensorFusionMappingMode> InMappingMode)
 	: FEditorViewportClient(nullptr, &InPreviewScene, StaticCastSharedRef<SEditorViewport>(InSensorMappingViewport))
 	, SensorMappingViewport(InSensorMappingViewport)
-	, SensorFusionToolkit(InSensorFusionToolkit)
+	, MappingMode(InMappingMode)
 {
 	this->SetViewMode(VMI_Lit);
 
@@ -63,7 +66,7 @@ FLinearColor FSensorMappingViewportClient::GetBackgroundColor() const
 
 void FSensorMappingViewportClient::DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas)
 {
-	auto PreviewSkelMeshComp = this->SensorFusionToolkit.Pin()->GetPreviewComponent();
+	auto PreviewSkelMeshComp = this->MappingMode.Pin()->GetPreviewComponent();
 	if (PreviewSkelMeshComp != nullptr && PreviewSkelMeshComp->IsValidLowLevel()
 		&& PreviewSkelMeshComp->SkeletalMesh != nullptr && PreviewSkelMeshComp->SkeletalMesh->IsValidLowLevel())
 	{
@@ -114,7 +117,7 @@ void FSensorMappingViewportClient::Draw(const FSceneView* View, FPrimitiveDrawIn
 {
 	FEditorViewportClient::Draw(View, PDI);
 
-	auto PreviewSkelMeshComp = this->SensorFusionToolkit.Pin()->GetPreviewComponent();
+	auto PreviewSkelMeshComp = this->MappingMode.Pin()->GetPreviewComponent();
 	if (!PreviewSkelMeshComp)
 	{
 		return;
@@ -174,14 +177,14 @@ void FSensorMappingViewportClient::ProcessClick(class FSceneView& InView, class 
 		{
 			if (Event == IE_Released)
 			{
-				this->SensorFusionToolkit.Pin()->SelectBoneByName(TargetBoneProxy->BoneName);
+				this->MappingMode.Pin()->SelectBoneByName(TargetBoneProxy->BoneName);
 			}
 		}
 
 
 		if (Key == EKeys::RightMouseButton && Event == EInputEvent::IE_Released)
 		{
-			this->SensorFusionToolkit.Pin()->SelectBoneByName(TargetBoneProxy->BoneName);
+			this->MappingMode.Pin()->SelectBoneByName(TargetBoneProxy->BoneName);
 			//context menu with "add sensor path", "add filter", ...
 			//FMenuBuilder ContextMenuBuilder(true, <COMMANDLIST>);
 			//ContextMenuBuilder.BeginSection("Mapping", LOCTEXT("Mapping", "Mapping"));

@@ -30,8 +30,22 @@ FKinect2DataProvider::FKinect2DataProvider(IKinectSensor* pSensor)
 		{
 			UE_LOG(SensorFusionLog, Log, TEXT("Registering kinect 2 body data."));
 
-			if (auto KinectSensor = this->Registry->RegisterSensor(TEXT("Kinect2")))
+			if (auto KinectSensorResult = this->Registry->RegisterSensor(TEXT("Kinect2")))
 			{
+				auto KinectSensor = KinectSensorResult.GetValue();
+				KinectSensor->IsStationary = true;
+				KinectSensor->MaxDepth = 450;
+				// Should be obtained via framedescription... these values vary between the kinect's sensors
+				KinectSensor->HorizontalFOV = 70;
+				KinectSensor->VerticalFOV = 60;
+
+				KinectSensor->CoordinateBase = FBasisVectorMatrix(
+						FVector(0., 0., 1.),
+						FVector(-1., 0., 0.),
+						FVector(0., 1., 0.),
+						FVector(0, 0, 0)
+					);
+
 				// Register all bodies
 				for (int body = 0; body < this->GetMaxBodyCount(); body++)
 				{
@@ -41,7 +55,7 @@ FKinect2DataProvider::FKinect2DataProvider(IKinectSensor* pSensor)
 						if (auto Bone = this->Registry->RegisterBone(BonePath->AsFName()))
 						{
 							Bone.GetValue()->Which = UKinect2FunctionLibrary::GetAccordingBone(joint);
-							KinectSensor.GetValue()->ProvidedBones.Add(BonePath);
+							KinectSensor->ProvidedBones.Add(BonePath);
 							UE_LOG(SensorFusionLog, Log, TEXT("Registered bone '%s'."), *BonePath->AsFName().ToString());
 						}
 						else
@@ -64,7 +78,7 @@ FKinect2DataProvider::FKinect2DataProvider(IKinectSensor* pSensor)
 						}
 						else
 						{
-							KinectSensor.GetValue()->ProvidedBones.Add(ReferencePath);
+							KinectSensor->ProvidedBones.Add(ReferencePath);
 						}
 					}
 				}
@@ -77,7 +91,7 @@ FKinect2DataProvider::FKinect2DataProvider(IKinectSensor* pSensor)
 				else
 				{
 					UE_LOG(SensorFusionLog, Log, TEXT("Kinect body frame reader ready."));
-					this->Thread = FRunnableThread::Create(this, TEXT("FKinect2DataProvider"));
+					this->Thread = FRunnableThread::Create(this, TEXT("Kinect2 Backend"));
 				}
 			}
 		}
@@ -197,19 +211,15 @@ uint32 FKinect2DataProvider::Run()
 				// Save back to registry
 				for (int boneIndex = 0; boneIndex < JointType_Count; boneIndex++)
 				{
-					if (auto NewBoneResult = this->Registry->GetBone(UKinect2FunctionLibrary::BuildBonePathInternal(bodyIndex, static_cast<EKinect2JointType>(boneIndex))))
+					const auto BoneType = static_cast<EKinect2JointType>(boneIndex);
+					if (auto NewBoneResult = this->Registry->GetBone(UKinect2FunctionLibrary::BuildBonePathInternal(bodyIndex, BoneType)))
 					{
 						auto NewBone = NewBoneResult.GetValue();
-							
-						//nb->Basis = FBasisVectorMatrix{
-						//	{0, -1, 0},
-						//	{0, 0, -1},
-						//	{1, 0, 0},
-						//	{0, 0, 0}
-						//};
+
 						NewBone->Confidence = joints[boneIndex].TrackingState / 2.;
 						NewBone->IsTracked = !(joints[boneIndex].TrackingState == TrackingState_NotTracked);
 						NewBone->Position = FVector(-joints[boneIndex].Position.X, -joints[boneIndex].Position.Z, joints[boneIndex].Position.Y) * 100;
+						NewBone->PositionRaw = FVector(joints[boneIndex].Position.X, joints[boneIndex].Position.Y, joints[boneIndex].Position.Z) * 100;
 
 						// This somehow fails
 						//FVector axis;
@@ -257,7 +267,13 @@ uint32 FKinect2DataProvider::Run()
 						FQuat q = ONEEIGHTY*FQuat(-jointOrientations[boneIndex].Orientation.z, jointOrientations[boneIndex].Orientation.x, -jointOrientations[boneIndex].Orientation.y, jointOrientations[boneIndex].Orientation.w);
 						q.Normalize();
 						NewBone->Orientation = (FQuat(FRotator(0, 90, 0))*q*BoneBaseCorrection).Rotator();
-						NewBone->Length = 1;
+
+						//
+						const auto kQuatVec = jointOrientations[boneIndex].Orientation;
+						const auto kQuat = FQuat{ kQuatVec.x, kQuatVec.y, kQuatVec.z, kQuatVec.w };
+						NewBone->OrientationRaw = kQuat.Rotator();
+						const auto ParentPosition = this->Registry->GetBone(UKinect2FunctionLibrary::BuildBonePathInternal(bodyIndex, UKinect2FunctionLibrary::GetParentJointType(BoneType))).GetValue()->Position;
+						NewBone->Length = (NewBone->Position - ParentPosition).Size();
 					}
 				}
 

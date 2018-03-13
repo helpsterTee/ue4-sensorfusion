@@ -6,6 +6,13 @@
 
 #include "SensorFusionToolkit.h"
 
+#include "SensorFusionMode.h"
+
+
+
+// Magic: donot remove this line, it will break the build.
+class FSensorFusionMappingMode;
+
 
 
 //!
@@ -19,7 +26,7 @@ private:
 
 
 	//!
-	TWeakPtr<FSensorFusionToolkit> SensorFusionToolkit;
+	TWeakPtr<FSensorFusionMappingMode> MappingMode;
 
 
 protected:
@@ -30,7 +37,7 @@ protected:
 public:
 	SLATE_BEGIN_ARGS(SSensorMappingViewport)
 	{}
-		SLATE_ARGUMENT(TWeakPtr<FSensorFusionToolkit>, SensorFusionToolkit)
+		SLATE_ARGUMENT(TWeakPtr<FSensorFusionMappingMode>, MappingMode)
 	SLATE_END_ARGS()
 
 

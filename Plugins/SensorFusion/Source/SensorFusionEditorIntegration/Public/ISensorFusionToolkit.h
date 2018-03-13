@@ -2,12 +2,13 @@
 
 #include "AvateeringComponent.h"
 
+#include "WorkflowCentricApplication.h"
 
 
 //! @brief Public interface to access the mapping editor.
-class ISensorFusionToolkit : public FAssetEditorToolkit
+class ISensorFusionToolkit 
+: public FWorkflowCentricApplication
 {
 public:
-	virtual const USkeletalMesh* GetTarget() const = 0;
-	virtual UAvateeringProfile* GetMapping() const = 0;
+	virtual UAvateeringProfile* GetProfile() const = 0;
 };

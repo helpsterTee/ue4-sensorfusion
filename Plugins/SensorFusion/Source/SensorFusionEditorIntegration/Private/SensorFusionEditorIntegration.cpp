@@ -22,6 +22,10 @@
 //!
 class FSensorFusionEditorIntegration : public ISensorFusionEditorIntegration
 {
+private:
+	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
+	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
+
 public:
 	// IMoudleInterface interface
 	void StartupModule() override;
@@ -29,12 +33,17 @@ public:
 	// End of IModuleInterface interface
 
 	TSharedRef<ISensorFusionToolkit> CreateSensorFusionToolkit(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, UAvateeringProfile* SensorDataMapping, USkeletalMesh* Target) override;
+	TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() { return this->MenuExtensibilityManager; }
+	TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() { return this->ToolBarExtensibilityManager; }
 };
 
 
 
 void FSensorFusionEditorIntegration::StartupModule()
 {
+	MenuExtensibilityManager = MakeShareable(new FExtensibilityManager);
+	ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
+
 	IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	AssetTools.RegisterAssetTypeActions(MakeShareable(new FAssetTypeActions_AvateeringProfile));
 

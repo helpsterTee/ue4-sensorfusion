@@ -13,7 +13,8 @@
 //! @brief C++ backend to handle the communication between blueprints and the data providers.
 //! @details All functions are trivial and self-documenting.
 //! @ingroup corebackend
-class SENSORFUSIONCORE_API FSensorDataRegistryBackend : public FGCObject
+class SENSORFUSIONCORE_API FSensorDataRegistryBackend 
+	: public FGCObject
 {
 private:
 	// I keep the paths simple for now... they SHOULD be implemented as a tree structure
@@ -67,7 +68,8 @@ public:
 //! @brief Blueprint interface to wrap registry access.
 //! @ingroup corebpapi
 UCLASS(BlueprintType, ClassGroup = "Sensor Fusion")
-class SENSORFUSIONCORE_API USensorDataRegistry : public UObject
+class SENSORFUSIONCORE_API USensorDataRegistry 
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 public:

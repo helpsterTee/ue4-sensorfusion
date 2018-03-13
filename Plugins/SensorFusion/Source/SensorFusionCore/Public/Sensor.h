@@ -12,7 +12,8 @@
 //! @ingroup corebpapi
 //! @todo extend the api with more functionality like activation/deactivation.
 UCLASS(BlueprintType, ClassGroup = "Sensor Fusion")
-class SENSORFUSIONCORE_API USensor : public UObject
+class SENSORFUSIONCORE_API USensor 
+	: public UObject
 {
 	GENERATED_BODY()
 
@@ -33,7 +34,32 @@ public:
 	FVector Position;
 
 
+	//!
+	UPROPERTY(BlueprintReadOnly)
+	float VerticalFOV;
+
+
+	//!
+	UPROPERTY(BlueprintReadOnly)
+	float HorizontalFOV;
+
+
+	//!
+	UPROPERTY(BlueprintReadOnly)
+	FQuat Orientation = FQuat::Identity;
+
+
+	//!
+	UPROPERTY(BlueprintReadOnly)
+	float MaxDepth;
+
+
 	//! @brief The coordinate space basis of the provided raw data.
 	UPROPERTY(BlueprintReadOnly)
 	FMatrix CoordinateBase;
+
+
+	//! @brief Whenever the sensor could change its position when running simulations.
+	UPROPERTY(BluePrintReadOnly)
+	bool IsStationary;
 };

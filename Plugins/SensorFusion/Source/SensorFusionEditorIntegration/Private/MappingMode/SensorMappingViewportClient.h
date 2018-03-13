@@ -10,10 +10,10 @@ class FSensorMappingViewportClient final
 {
 private:
 	const TWeakPtr<SSensorMappingViewport> SensorMappingViewport;
-	TWeakPtr<FSensorFusionToolkit> SensorFusionToolkit;
+	TWeakPtr<FSensorFusionMappingMode> MappingMode;
 
 public:
-	FSensorMappingViewportClient(FPreviewScene& InPreviewScene, const TSharedRef<SSensorMappingViewport> InSensorMappingViewport, TWeakPtr<FSensorFusionToolkit> InSensorFusionToolkit);
+	FSensorMappingViewportClient(FPreviewScene& InPreviewScene, const TSharedRef<SSensorMappingViewport> InSensorMappingViewport, TWeakPtr<FSensorFusionMappingMode> InMappingMode);
 
 	// FEditorViewportClient interface
 	void Tick(float DeltaTime) override;

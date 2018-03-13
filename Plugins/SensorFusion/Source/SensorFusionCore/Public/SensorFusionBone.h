@@ -143,14 +143,23 @@ class SENSORFUSIONCORE_API USensorFusionBone : public UObject
 	GENERATED_BODY()
 
 public:
-	//! Component space bone position.
+	//! Unreal space bone position.
 	UPROPERTY(BlueprintReadOnly, Category = "Sensor Fusion|Avateering")
 	FVector Position;
 
 
-	//! Component space bone orientation.
+	UPROPERTY(BlueprintReadOnly, Category = "Sensor Fusion|Avateering")
+	FVector PositionRaw;
+
+
+	//! Unreal space bone orientation.
 	UPROPERTY(BlueprintReadOnly, Category = "Sensor Fusion|Avateering")
 	FRotator Orientation;
+
+
+	//! Sensor space orientation.
+	UPROPERTY(BlueprintReadOnly, Category = "Sensor Fusion|Avateering")
+	FRotator OrientationRaw;
 
 
 	//! Bone length in unreal units.

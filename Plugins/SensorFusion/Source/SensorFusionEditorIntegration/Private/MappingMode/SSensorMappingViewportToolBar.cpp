@@ -7,9 +7,9 @@
 
 
 
-void SSensorMappingViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class ICommonEditorViewportToolbarInfoProvider> InInfoProvider)
+void SSensorMappingViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<ICommonEditorViewportToolbarInfoProvider> InInfoProvider)
 {
-	this->SensorFusionToolkit = InArgs._SensorFusionToolkit;
+	this->MappingMode = InArgs._MappingMode;
 	/*
 	 struct LocalViewportToolbarBuilder
 	 {

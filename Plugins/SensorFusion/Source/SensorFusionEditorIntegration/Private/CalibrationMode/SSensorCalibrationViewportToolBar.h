@@ -6,16 +6,16 @@
 
 
 //!
-class SSensorMappingViewportToolBar 
+class SSensorCalibrationViewportToolBar 
 	: public SCommonEditorViewportToolbarBase
 {
 private:
-	TWeakPtr<FSensorFusionToolkit> SensorFusionToolkit;
+	TWeakPtr<FSensorFusionCalibrationMode> CalibrationMode;
 
 public:
-	SLATE_BEGIN_ARGS(SSensorMappingViewportToolBar) 
+	SLATE_BEGIN_ARGS(SSensorCalibrationViewportToolBar)
 	{}
-		SLATE_ARGUMENT(TWeakPtr<FSensorFusionToolkit>, SensorFusionToolkit)
+		SLATE_ARGUMENT(TWeakPtr<FSensorFusionCalibrationMode>, CalibrationMode)
 	SLATE_END_ARGS()
 
 
